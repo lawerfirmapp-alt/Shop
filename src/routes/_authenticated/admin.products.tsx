@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { ImagePlus, Pencil, Plus, Trash2 } from "lucide-react";
+import { Film, ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { formatRand, type Product } from "@/lib/catalog";
+import { formatRand, isStoredFile, SIZE_SCALE, type Product } from "@/lib/catalog";
+import { cn } from "@/lib/utils";
 import { adminDepartmentsQuery, adminProductsQuery } from "@/lib/admin-data";
-import { PHOTO_BUCKET, useProductImages } from "@/lib/product-images";
+import { PHOTO_BUCKET, useProductImages, useSignedLinks, VIDEO_BUCKET } from "@/lib/product-images";
 
 export const Route = createFileRoute("/_authenticated/admin/products")({
   loader: ({ context }) =>
@@ -36,11 +37,19 @@ type Draft = {
   is_active: boolean;
   image_path: string | null;
   image_url: string | null;
+  sizes: string[];
+  gallery: string[];
+  video: string | null;
 };
+
+const MAX_PHOTO = 10 * 1024 * 1024;
+const MAX_VIDEO = 50 * 1024 * 1024;
+const ext = (f: File, fallback: string) => f.name.split(".").pop()?.toLowerCase() || fallback;
 
 const empty: Draft = {
   name: "", department: "women", fabric: "Ankara", origin: "South Africa", price: "", tag: "",
   is_new_arrival: true, is_active: true, image_path: null, image_url: null,
+  sizes: ["S", "M", "L", "XL", "1XL", "2XL"], gallery: [], video: null,
 };
 
 function ProductsAdmin() {
@@ -52,16 +61,28 @@ function ProductsAdmin() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [show, setShow] = useState<"all" | "new" | "hidden">("all");
+  const [extraFiles, setExtraFiles] = useState<{ file: File; preview: string }[]>([]);
+  const [videoFile, setVideoFile] = useState<{ file: File; preview: string } | null>(null);
+  const [removed, setRemoved] = useState<{ bucket: string; path: string }[]>([]);
+  const photoLink = useSignedLinks(PHOTO_BUCKET, draft?.gallery ?? []);
+  const videoLink = useSignedLinks(VIDEO_BUCKET, [draft?.video]);
+  const dropStored = (bucket: string, v: string | null | undefined) => {
+    if (v && isStoredFile(v)) setRemoved((r) => [...r, { bucket, path: v }]);
+  };
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "products"] });
 
   const open = (p?: Product) => {
     setFile(null);
+    setExtraFiles([]);
+    setVideoFile(null);
+    setRemoved([]);
     setPreview(p ? (images[p.id] ?? null) : null);
     setDraft(
       p
         ? { id: p.id, name: p.name, department: p.department, fabric: p.fabric, origin: p.origin, price: String(p.price), tag: p.tag,
-            is_new_arrival: p.is_new_arrival, is_active: p.is_active ?? true, image_path: p.image_path, image_url: p.image_url }
+            is_new_arrival: p.is_new_arrival, is_active: p.is_active ?? true, image_path: p.image_path, image_url: p.image_url,
+            sizes: p.sizes ?? [], gallery: p.gallery ?? [], video: p.video ?? null }
         : { ...empty },
     );
   };
@@ -72,20 +93,35 @@ function ProductsAdmin() {
       if (!d.name.trim()) throw new Error("Please add a product name");
       if (!Number.isFinite(price) || price < 0) throw new Error("Please add a valid price");
       let image_path = d.image_path;
-      if (file) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const path = `${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, { contentType: file.type });
+      const upload = async (bucket: string, f: File, fallback: string) => {
+        const path = `${crypto.randomUUID()}.${ext(f, fallback)}`;
+        const up = await supabase.storage.from(bucket).upload(path, f, { contentType: f.type });
         if (up.error) throw up.error;
-        if (d.image_path) await supabase.storage.from(PHOTO_BUCKET).remove([d.image_path]);
-        image_path = path;
+        return path;
+      };
+      const stale = [...removed];
+      if (file) {
+        if (d.image_path) stale.push({ bucket: PHOTO_BUCKET, path: d.image_path });
+        image_path = await upload(PHOTO_BUCKET, file, "jpg");
       }
+      const gallery = [...d.gallery];
+      for (const x of extraFiles) gallery.push(await upload(PHOTO_BUCKET, x.file, "jpg"));
+      let video = d.video;
+      if (videoFile) {
+        if (d.video && isStoredFile(d.video)) stale.push({ bucket: VIDEO_BUCKET, path: d.video });
+        video = await upload(VIDEO_BUCKET, videoFile.file, "mp4");
+      }
+      const sizes = SIZE_SCALE.filter((s) => d.sizes.includes(s));
       const row = {
         name: d.name.trim(), department: d.department, fabric: d.fabric.trim(), origin: d.origin.trim(), price,
-        tag: d.tag.trim(), is_new_arrival: d.is_new_arrival, is_active: d.is_active, image_path,
+        tag: d.tag.trim(), is_new_arrival: d.is_new_arrival, is_active: d.is_active, image_path, gallery, video, sizes,
       };
       const res = d.id ? await supabase.from("products").update(row).eq("id", d.id) : await supabase.from("products").insert(row);
       if (res.error) throw res.error;
+      for (const b of [PHOTO_BUCKET, VIDEO_BUCKET]) {
+        const paths = stale.filter((x) => x.bucket === b).map((x) => x.path);
+        if (paths.length) await supabase.storage.from(b).remove(paths);
+      }
     },
     onSuccess: () => {
       toast.success("Product saved");
@@ -108,7 +144,9 @@ function ProductsAdmin() {
     mutationFn: async (p: Product) => {
       const { error } = await supabase.from("products").delete().eq("id", p.id);
       if (error) throw error;
-      if (p.image_path) await supabase.storage.from(PHOTO_BUCKET).remove([p.image_path]);
+      const photos = [p.image_path, ...(p.gallery ?? [])].filter((x): x is string => !!x && isStoredFile(x));
+      if (photos.length) await supabase.storage.from(PHOTO_BUCKET).remove(photos);
+      if (p.video && isStoredFile(p.video)) await supabase.storage.from(VIDEO_BUCKET).remove([p.video]);
     },
     onSuccess: () => {
       toast.success("Product deleted");
@@ -149,6 +187,10 @@ function ProductsAdmin() {
               </p>
               <h3 className="truncate font-display text-lg font-semibold">{p.name}</h3>
               <p className="text-sm font-semibold">{formatRand(p.price)}</p>
+              <p className="text-xs text-muted-foreground">
+                {1 + (p.gallery?.length ?? 0)} photo{(p.gallery?.length ?? 0) ? "s" : ""}{p.video ? " · video" : ""}
+                {p.sizes?.length ? ` · ${p.sizes.join(", ")}` : " · one size"}
+              </p>
               <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 text-xs">
                 <label className="flex items-center gap-1.5">
                   <Switch checked={p.is_new_arrival} onCheckedChange={(v) => quick.mutate({ id: p.id, patch: { is_new_arrival: v } })} /> New
@@ -190,7 +232,7 @@ function ProductsAdmin() {
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (!f) return;
-                    if (f.size > 10 * 1024 * 1024) {
+                    if (f.size > MAX_PHOTO) {
                       toast.error("Photo is larger than 10 MB");
                       return;
                     }
@@ -199,6 +241,92 @@ function ProductsAdmin() {
                   }}
                 />
               </label>
+              <div className="space-y-1.5">
+                <Label>More photos</Label>
+                <div className="flex flex-wrap gap-2">
+                  {draft.gallery.map((g) => (
+                    <div key={g} className="relative h-24 w-19 overflow-hidden bg-muted">
+                      {photoLink(g) && <img src={photoLink(g)} alt="" className="size-full object-cover" />}
+                      <button
+                        type="button" aria-label="Remove photo"
+                        className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-background/90"
+                        onClick={() => { dropStored(PHOTO_BUCKET, g); setDraft({ ...draft, gallery: draft.gallery.filter((x) => x !== g) }); }}
+                      ><X className="size-3" /></button>
+                    </div>
+                  ))}
+                  {extraFiles.map((x) => (
+                    <div key={x.preview} className="relative h-24 w-19 overflow-hidden bg-muted">
+                      <img src={x.preview} alt="" className="size-full object-cover" />
+                      <button
+                        type="button" aria-label="Remove photo"
+                        className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-background/90"
+                        onClick={() => setExtraFiles(extraFiles.filter((y) => y !== x))}
+                      ><X className="size-3" /></button>
+                    </div>
+                  ))}
+                  <label className="grid h-24 w-19 cursor-pointer place-items-center border border-dashed border-border text-muted-foreground hover:border-gold">
+                    <Plus className="size-5" />
+                    <input
+                      type="file" accept="image/*" multiple className="sr-only" aria-label="Add more photos"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        e.target.value = "";
+                        if (files.some((f) => f.size > MAX_PHOTO)) toast.error("Photos must be under 10 MB each");
+                        setExtraFiles([...extraFiles, ...files.filter((f) => f.size <= MAX_PHOTO).map((f) => ({ file: f, preview: URL.createObjectURL(f) }))]);
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Video (one per product)</Label>
+                {videoFile || draft.video ? (
+                  <div className="flex items-center gap-3">
+                    <video src={videoFile?.preview ?? videoLink(draft.video)} controls className="h-32 bg-muted" />
+                    <Button
+                      type="button" variant="outline" size="sm"
+                      onClick={() => {
+                        if (videoFile) setVideoFile(null);
+                        else { dropStored(VIDEO_BUCKET, draft.video); setDraft({ ...draft, video: null }); }
+                      }}
+                    ><Trash2 /> Remove video</Button>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer items-center gap-3 border border-dashed border-border p-3 text-sm hover:border-gold">
+                    <Film className="size-5 text-muted-foreground" />
+                    <span><span className="font-semibold">Upload video</span> <span className="text-muted-foreground">· MP4 or MOV, up to 50 MB</span></span>
+                    <input
+                      type="file" accept="video/*" className="sr-only" aria-label="Product video"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!f) return;
+                        if (f.size > MAX_VIDEO) { toast.error("Video is larger than 50 MB"); return; }
+                        setVideoFile({ file: f, preview: URL.createObjectURL(f) });
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Sizes in stock <span className="font-normal text-muted-foreground">(crossed-out sizes show as sold out)</span></Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SIZE_SCALE.map((sz) => {
+                    const on = draft.sizes.includes(sz);
+                    return (
+                      <button
+                        key={sz} type="button" aria-pressed={on}
+                        onClick={() => setDraft({ ...draft, sizes: on ? draft.sizes.filter((x) => x !== sz) : [...draft.sizes, sz] })}
+                        className={cn("min-w-11 border px-2.5 py-1.5 text-sm", on ? "border-gold bg-gold text-gold-foreground" : "border-border text-muted-foreground line-through")}
+                      >{sz}</button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">Turn all sizes off for one-size items like bags and jewellery.</p>
+              </div>
+
               <Field label="Name"><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Department">

@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { formatRand, visibleProducts, type Filter, type Product } from "@/lib/catalog";
+import { formatRand, needsSize, visibleProducts, type Filter, type Product } from "@/lib/catalog";
+import { ProductDialog } from "@/components/shop/product-dialog";
 import { useProductImages } from "@/lib/product-images";
 import { getStorefront, placeOrder } from "@/lib/shop.functions";
 import { SHOP_CONTACT, telLink, whatsappLink } from "@/lib/contact";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/")({
   component: Shop,
 });
 
-type CartLine = Product & { qty: number };
+type CartLine = Product & { qty: number; size?: string | undefined; key: string };
 
 function Shop() {
   const { data } = useSuspenseQuery(storefrontQuery);
@@ -46,6 +47,7 @@ function Shop() {
   const [step, setStep] = useState<"bag" | "details" | "done">("bag");
   const [placed, setPlaced] = useState<{ orderNumber: number; total: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState<Product | null>(null);
 
   const list = useMemo(() => visibleProducts(products, departments, filter, query), [products, departments, filter, query]);
   const newArrivals = useMemo(() => visibleProducts(products, departments, "new").slice(0, 4), [products, departments]);
@@ -53,15 +55,16 @@ function Shop() {
   const count = cart.reduce((n, l) => n + l.qty, 0);
   const total = cart.reduce((n, l) => n + l.qty * l.price, 0);
 
-  const add = (p: Product) => {
+  const add = (p: Product, size?: string, qty = 1) => {
+    const key = `${p.id}:${size ?? ""}`;
     setCart((c) => {
-      const hit = c.find((l) => l.id === p.id);
-      return hit ? c.map((l) => (l.id === p.id ? { ...l, qty: l.qty + 1 } : l)) : [...c, { ...p, qty: 1 }];
+      const hit = c.find((l) => l.key === key);
+      return hit ? c.map((l) => (l.key === key ? { ...l, qty: Math.min(20, l.qty + qty) } : l)) : [...c, { ...p, qty, size, key }];
     });
-    toast.success(`${p.name} added to your bag`);
+    toast.success(`${p.name}${size ? ` (${size})` : ""} added to your bag`);
   };
-  const change = (id: string, delta: number) =>
-    setCart((c) => c.map((l) => (l.id === id ? { ...l, qty: Math.min(20, l.qty + delta) } : l)).filter((l) => l.qty > 0));
+  const change = (key: string, delta: number) =>
+    setCart((c) => c.map((l) => (l.key === key ? { ...l, qty: Math.min(20, l.qty + delta) } : l)).filter((l) => l.qty > 0));
 
   const pick = (f: Filter) => {
     setFilter(f);
@@ -85,7 +88,7 @@ function Shop() {
           email: String(f.get("email") ?? ""),
           address: String(f.get("address") ?? ""),
           notes: String(f.get("notes") ?? ""),
-          lines: cart.map((l) => ({ productId: l.id, qty: l.qty })),
+          lines: cart.map((l) => ({ productId: l.id, qty: l.qty, size: l.size })),
         },
       });
       setPlaced(res);
@@ -101,7 +104,7 @@ function Shop() {
 
   const card = (p: Product) => (
     <article key={p.id} className="group flex flex-col overflow-hidden border border-border bg-card transition-shadow hover:shadow-card">
-      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+      <button type="button" onClick={() => setViewing(p)} aria-label={`View ${p.name}`} className="relative block aspect-[4/5] overflow-hidden bg-muted">
         {images[p.id] && (
           <img src={images[p.id]} alt={p.name} width={800} height={1008} loading="lazy" className="size-full object-cover transition-transform duration-700 group-hover:scale-105" />
         )}
@@ -110,12 +113,21 @@ function Shop() {
             {p.tag || "New"}
           </span>
         )}
-      </div>
+        {p.video && (
+          <span className="absolute bottom-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider">▶ Video</span>
+        )}
+      </button>
       <div className="flex flex-1 flex-col p-3 md:p-4">
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-gold">{p.fabric} · {p.origin}</p>
-        <h3 className="mt-1 flex-1 text-lg font-semibold leading-snug md:text-xl">{p.name}</h3>
+        <h3 className="mt-1 flex-1 text-lg font-semibold leading-snug md:text-xl">
+          <button type="button" onClick={() => setViewing(p)} className="text-left hover:text-gold">{p.name}</button>
+        </h3>
         <p className="mt-2 font-semibold">{formatRand(p.price)}</p>
-        <Button variant="gold" className="mt-3 w-full" onClick={() => add(p)}>Add to bag</Button>
+        {needsSize(p) ? (
+          <Button variant="gold" className="mt-3 w-full" onClick={() => setViewing(p)}>Choose size</Button>
+        ) : (
+          <Button variant="gold" className="mt-3 w-full" onClick={() => add(p)}>Add to bag</Button>
+        )}
       </div>
     </article>
   );
@@ -299,6 +311,8 @@ function Shop() {
         <MessageCircle className="size-5" /> <span className="hidden sm:inline">WhatsApp us</span>
       </a>
 
+      <ProductDialog product={viewing} mainImage={viewing ? images[viewing.id] : undefined} onClose={() => setViewing(null)} onAdd={add} />
+
       <Sheet open={bagOpen} onOpenChange={setBagOpen}>
         <SheetContent className="flex w-full flex-col sm:max-w-md">
           <SheetHeader>
@@ -324,7 +338,7 @@ function Shop() {
               <div className="space-y-1.5"><Label htmlFor="o-phone">Phone (WhatsApp)</Label><Input id="o-phone" name="phone" type="tel" required minLength={7} maxLength={20} /></div>
               <div className="space-y-1.5"><Label htmlFor="o-email">Email (optional)</Label><Input id="o-email" name="email" type="email" maxLength={255} /></div>
               <div className="space-y-1.5"><Label htmlFor="o-address">Delivery address</Label><Textarea id="o-address" name="address" required minLength={5} maxLength={500} /></div>
-              <div className="space-y-1.5"><Label htmlFor="o-notes">Notes (size, colour…)</Label><Textarea id="o-notes" name="notes" maxLength={500} /></div>
+              <div className="space-y-1.5"><Label htmlFor="o-notes">Notes (fitting, colour…)</Label><Textarea id="o-notes" name="notes" maxLength={500} /></div>
               <div className="mt-auto space-y-3 border-t border-border pt-4">
                 <div className="flex justify-between text-lg font-semibold"><span>Total</span><span>{formatRand(total)}</span></div>
                 <Button type="submit" variant="gold" size="xl" className="w-full" disabled={busy}>{busy ? "Placing order…" : "Place order"}</Button>
@@ -337,15 +351,15 @@ function Shop() {
               <div className="flex-1 space-y-4 overflow-y-auto">
                 {cart.length === 0 && <p className="py-10 text-center text-muted-foreground">Your bag is empty.</p>}
                 {cart.map((l) => (
-                  <div key={l.id} className="flex gap-3 border-b border-border pb-4">
+                  <div key={l.key} className="flex gap-3 border-b border-border pb-4">
                     {images[l.id] ? <img src={images[l.id]} alt={l.name} className="h-20 w-16 object-cover" /> : <div className="h-20 w-16 bg-muted" />}
                     <div className="flex-1">
                       <p className="font-display text-lg leading-tight">{l.name}</p>
-                      <p className="text-xs text-muted-foreground">{l.fabric}</p>
+                      <p className="text-xs text-muted-foreground">{l.size ? `Size ${l.size} · ` : ""}{l.fabric}</p>
                       <div className="mt-2 flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="size-7" aria-label="Remove one" onClick={() => change(l.id, -1)}><Minus /></Button>
+                        <Button variant="outline" size="icon" className="size-7" aria-label="Remove one" onClick={() => change(l.key, -1)}><Minus /></Button>
                         <span className="w-5 text-center text-sm">{l.qty}</span>
-                        <Button variant="outline" size="icon" className="size-7" aria-label="Add one" onClick={() => change(l.id, 1)}><Plus /></Button>
+                        <Button variant="outline" size="icon" className="size-7" aria-label="Add one" onClick={() => change(l.key, 1)}><Plus /></Button>
                       </div>
                     </div>
                     <p className="font-semibold">{formatRand(l.price * l.qty)}</p>

@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type { Database, Json } from "@/integrations/supabase/types";
-import { priceOrder, type Department, type Product } from "@/lib/catalog";
+import { isStoredFile, priceOrder, type Department, type Product } from "@/lib/catalog";
 
 function publicClient() {
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
@@ -26,7 +26,7 @@ async function loadCatalog() {
     sb.from("departments").select("id, label, enabled, sort_order").order("sort_order"),
     sb
       .from("products")
-      .select("id, name, department, fabric, origin, price, tag, image_url, image_path, is_new_arrival, is_active, created_at")
+      .select("id, name, department, fabric, origin, price, tag, image_url, image_path, gallery, video, sizes, is_new_arrival, is_active, created_at")
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
   ]);
@@ -38,20 +38,30 @@ async function loadCatalog() {
   };
 }
 
-/** Public: shop data. Photos in the private bucket get short-lived view links for active products only. */
+async function signLinks(bucket: string, paths: string[]) {
+  if (paths.length === 0) return new Map<string, string>();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.storage.from(bucket).createSignedUrls([...new Set(paths)], 60 * 60 * 24);
+  return new Map((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl]));
+}
+
+/** Public: shop data. Uploaded photos/videos in the private stores get short-lived view links for active products only. */
 export const getStorefront = createServerFn({ method: "GET" }).handler(async () => {
   const catalog = await loadCatalog();
-  const paths = catalog.products.map((p) => p.image_path).filter((x): x is string => !!x);
-  if (paths.length === 0) return catalog;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.storage.from("product-photos").createSignedUrls(paths, 60 * 60 * 24);
-  const links = new Map((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl]));
+  const photoPaths = catalog.products.flatMap((p) => [p.image_path, ...(p.gallery ?? [])]).filter((x): x is string => !!x && isStoredFile(x));
+  const videoPaths = catalog.products.map((p) => p.video).filter((x): x is string => !!x && isStoredFile(x));
+  const [photos, videos] = await Promise.all([signLinks("product-photos", photoPaths), signLinks("product-videos", videoPaths)]);
+  const photo = (v: string) => (isStoredFile(v) ? photos.get(v) : v);
   return {
     ...catalog,
-    // Shoppers cannot sign photo links themselves; hand them the link instead of the storage path.
-    products: catalog.products.map((p) =>
-      p.image_path ? { ...p, image_url: links.get(p.image_path) ?? null, image_path: null } : p,
-    ),
+    // Shoppers cannot sign links themselves; hand them the link instead of the storage path.
+    products: catalog.products.map((p) => ({
+      ...p,
+      image_url: p.image_path ? (photos.get(p.image_path) ?? null) : p.image_url,
+      image_path: null,
+      gallery: (p.gallery ?? []).map(photo).filter((x): x is string => !!x),
+      video: p.video ? ((isStoredFile(p.video) ? videos.get(p.video) : p.video) ?? null) : null,
+    })),
   };
 });
 
@@ -62,7 +72,7 @@ const orderSchema = z.object({
   address: z.string().trim().min(5, "Please enter a delivery address").max(500),
   notes: z.string().trim().max(500).optional(),
   lines: z
-    .array(z.object({ productId: z.string().uuid(), qty: z.number().int().min(1).max(20) }))
+    .array(z.object({ productId: z.string().uuid(), qty: z.number().int().min(1).max(20), size: z.string().max(10).optional() }))
     .min(1)
     .max(50),
 });

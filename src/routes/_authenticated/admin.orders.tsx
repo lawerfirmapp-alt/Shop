@@ -85,8 +85,8 @@ function OrdersAdmin() {
                   <p className="eyebrow text-muted-foreground">Items</p>
                   <ul className="mt-2 space-y-1">
                     {o.items.map((l) => (
-                      <li key={l.productId} className="flex justify-between gap-4">
-                        <span>{l.qty} × {l.name}</span><span>{formatRand(l.price * l.qty)}</span>
+                      <li key={`${l.productId}-${l.size ?? ""}`} className="flex justify-between gap-4">
+                        <span>{l.qty} × {l.name}{l.size ? ` — size ${l.size}` : ""}</span><span>{formatRand(l.price * l.qty)}</span>
                       </li>
                     ))}
                   </ul>

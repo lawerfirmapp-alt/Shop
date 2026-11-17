@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDepartmentEnabled, priceOrder, visibleProducts, type Department, type Product } from "./catalog";
+import { inchesToCm, isDepartmentEnabled, isStoredFile, priceOrder, SIZE_GUIDE, SIZE_SCALE, visibleProducts, type Department, type Product } from "./catalog";
 
 const departments: Department[] = [
   { id: "women", label: "Women", enabled: true },
@@ -49,5 +49,38 @@ describe("orders", () => {
 
   it("refuses an empty bag", () => {
     expect(() => priceOrder([], list, departments)).toThrow();
+  });
+});
+
+describe("sizes", () => {
+  const dress = make({ id: "dress", price: 899, sizes: ["S", "M", "L"] });
+  const bag = make({ id: "bag", price: 300, department: "accessories" });
+
+  it("sized items need a size before ordering", () => {
+    expect(() => priceOrder([{ productId: "dress", qty: 1 }], [dress], departments)).toThrow(/choose a size/);
+  });
+
+  it("refuses a sold-out size", () => {
+    expect(() => priceOrder([{ productId: "dress", qty: 1, size: "XL" }], [dress], departments)).toThrow(/sold out/);
+  });
+
+  it("keeps the chosen size on the order line", () => {
+    expect(priceOrder([{ productId: "dress", qty: 2, size: "M" }], [dress], departments).lines[0]?.size).toBe("M");
+  });
+
+  it("one-size items need no size", () => {
+    expect(priceOrder([{ productId: "bag", qty: 1 }], [bag], departments).total).toBe(300);
+  });
+
+  it("size range runs XS to 3XL and the guide converts inches to cm", () => {
+    expect(SIZE_SCALE).toEqual(["XS", "S", "M", "L", "XL", "1XL", "2XL", "3XL"]);
+    expect(SIZE_GUIDE.M.bust).toBe(36.5);
+    expect(inchesToCm(SIZE_GUIDE.M.bust)).toBe(93);
+  });
+
+  it("tells uploaded files apart from web links", () => {
+    expect(isStoredFile("abc.mp4")).toBe(true);
+    expect(isStoredFile("/__l5e/assets-v1/x/a.jpg")).toBe(false);
+    expect(isStoredFile("https://x.co/a.jpg")).toBe(false);
   });
 });

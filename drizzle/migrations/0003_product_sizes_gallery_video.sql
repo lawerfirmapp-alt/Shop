@@ -1,0 +1,31 @@
+alter table public.products
+  add column if not exists sizes text[] not null default '{}',
+  add column if not exists gallery text[] not null default '{}',
+  add column if not exists video text;
+
+create policy "Admins view product videos" on storage.objects for select to authenticated
+  using (bucket_id = 'product-videos' and public.has_role(auth.uid(), 'admin'));
+create policy "Admins upload product videos" on storage.objects for insert to authenticated
+  with check (bucket_id = 'product-videos' and public.has_role(auth.uid(), 'admin'));
+create policy "Admins update product videos" on storage.objects for update to authenticated
+  using (bucket_id = 'product-videos' and public.has_role(auth.uid(), 'admin'));
+create policy "Admins delete product videos" on storage.objects for delete to authenticated
+  using (bucket_id = 'product-videos' and public.has_role(auth.uid(), 'admin'));
+
+delete from public.products where department = 'women' and image_path is null and name in (
+  'Indigo Shweshwe Wrap Dress','Sunburst Ankara Two-Piece','Turquoise Ankara Kaftan','Ember Ankara Midi Skirt','Kente Off-Shoulder Dress','Bogolan Mudcloth Shirt Dress');
+insert into public.products (name, department, fabric, origin, price, tag, image_url, gallery, is_new_arrival, sizes) values
+('Crimson Textured Knit Top','women','Textured knit','South Africa',649,'','/__l5e/assets-v1/b6fbeb7d-a6a2-4e01-9db6-38e0e1630cf7/crimson-knit-top.jpg',ARRAY['/__l5e/assets-v1/65a1dcc8-c5ef-495f-ba28-ede1aff7edbd/crimson-top-ivory-trousers.jpg','/__l5e/assets-v1/c034c5b9-a904-4965-829d-eb11db0222e2/crimson-top-ivory-trousers-model.jpg']::text[],true,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Ivory Wide-Leg Trousers','women','Sateen twill','South Africa',799,'','/__l5e/assets-v1/2de804ee-f004-4ccd-b6c1-4f9a371fa324/ivory-trousers.jpg',ARRAY['/__l5e/assets-v1/9facf23c-f791-4017-8741-5614b59a79c7/ivory-trousers-folded.jpg','/__l5e/assets-v1/c034c5b9-a904-4965-829d-eb11db0222e2/crimson-top-ivory-trousers-model.jpg']::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Fuchsia Feather Gown','women','Feather fringe','South Africa',2899,'Statement','/__l5e/assets-v1/294445ed-977c-4aa2-a43b-765069fe61d3/fuchsia-feather-gown-model.jpg','{}'::text[],true,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Indigo Tie-Dye Maxi Dress','women','Indigo tie-dye','South Africa',1499,'Bestseller','/__l5e/assets-v1/d19c0839-8f88-4888-a2a2-3388d84485da/indigo-tie-dye-dress-model.jpg',ARRAY['/__l5e/assets-v1/8acbde18-320c-46d6-aaac-1354794bdd76/indigo-tie-dye-dress.jpg','/__l5e/assets-v1/903a7f0e-33df-413f-9434-0037c69a6fa7/indigo-tie-dye-dress-runway.jpg']::text[],true,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Harlequin Ruffle-Sleeve Top','women','African print','South Africa',699,'','/__l5e/assets-v1/adeab58b-cf47-4ca1-a417-b439c64c3006/harlequin-ruffle-top.jpg',ARRAY['/__l5e/assets-v1/75804bd7-bcff-4101-8615-13616ac273aa/ruffle-top-gold-trousers.jpg','/__l5e/assets-v1/42f21fe9-e2fc-4bb1-9648-65a930eb9007/gold-trousers-ruffle-top.jpg','/__l5e/assets-v1/f0fd3400-cf16-40c5-8689-a42da62b171c/harlequin-ruffle-top-gold-trousers-model.jpg','/__l5e/assets-v1/f5723ffa-f4ce-4c2e-8486-97e55a807ca2/ruffle-top-gold-trousers-runway.jpg']::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Gold Floral Brocade Joggers','women','Brocade','South Africa',999,'','/__l5e/assets-v1/d208270f-40a9-40c3-a017-4e1948877802/gold-brocade-trousers.jpg',ARRAY['/__l5e/assets-v1/42f21fe9-e2fc-4bb1-9648-65a930eb9007/gold-trousers-ruffle-top.jpg','/__l5e/assets-v1/f0fd3400-cf16-40c5-8689-a42da62b171c/harlequin-ruffle-top-gold-trousers-model.jpg','/__l5e/assets-v1/f5723ffa-f4ce-4c2e-8486-97e55a807ca2/ruffle-top-gold-trousers-runway.jpg']::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Harlequin Balloon Trousers','women','African print','South Africa',949,'','/__l5e/assets-v1/571159da-c64d-4e49-8d58-70afb834a814/harlequin-balloon-trousers.jpg',ARRAY['/__l5e/assets-v1/f883cf24-961d-4a5d-b867-ae22e7af06f4/harlequin-trousers-purple-top.jpg','/__l5e/assets-v1/8d1421ea-092f-435c-b78c-e9d49714dbc4/purple-wrap-top-harlequin-trousers-runway.jpg','/__l5e/assets-v1/aa641f11-67ef-4e21-a3ce-43a14d615b9d/purple-wrap-top-harlequin-trousers-runway-2.jpg']::text[],true,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Purple Brocade Wrap Top','women','Brocade','South Africa',899,'','/__l5e/assets-v1/0eca4c99-bd4f-4adb-b863-dcc290856bd9/purple-brocade-wrap-top.jpg',ARRAY['/__l5e/assets-v1/f883cf24-961d-4a5d-b867-ae22e7af06f4/harlequin-trousers-purple-top.jpg','/__l5e/assets-v1/8d1421ea-092f-435c-b78c-e9d49714dbc4/purple-wrap-top-harlequin-trousers-runway.jpg','/__l5e/assets-v1/aa641f11-67ef-4e21-a3ce-43a14d615b9d/purple-wrap-top-harlequin-trousers-runway-2.jpg']::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Teal Brocade Mermaid Dress','women','Brocade','South Africa',1699,'','/__l5e/assets-v1/3e4f6b85-00e0-447a-b462-3e71870d48bd/teal-mermaid-dress-runway.jpg',ARRAY['/__l5e/assets-v1/c9058466-f01b-4a85-89c3-0355e2513829/teal-brocade-mermaid-dress.jpg']::text[],true,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Golden Rose Brocade Dress','women','Brocade','South Africa',1399,'','/__l5e/assets-v1/e700212a-1d28-4724-82b7-6c5da3d0c89d/blue-gold-rose-dress.jpg','{}'::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Navy Column Maxi Dress','women','Denim','South Africa',1299,'','/__l5e/assets-v1/f7be2bf9-18a0-4c0e-8470-9e538956d16a/navy-maxi-dress-runway.jpg',ARRAY['/__l5e/assets-v1/2d233067-7e3f-48ed-8a1d-dce72643952b/navy-maxi-dress.jpg']::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Navy Tie-Waist Two-Piece','women','Crepe','South Africa',1199,'','/__l5e/assets-v1/87a738de-7924-410d-a0b1-3512ebabb298/navy-tie-waist-set-model.jpg','{}'::text[],true,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Ivory Tiered Jacquard Skirt','women','Jacquard','South Africa',899,'','/__l5e/assets-v1/afbee2fd-af23-46b5-9479-b42bb39a5f13/ivory-tiered-skirt.jpg','{}'::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]),
+('Ivory Jacquard Shirt & Trouser Set','women','Jacquard','South Africa',1499,'','/__l5e/assets-v1/67abb5ed-27bb-49f2-8a55-9e7db4212c32/ivory-shirt-trouser-set.jpg','{}'::text[],false,'{S,M,L,XL,1XL,2XL}'::text[]);

@@ -85,6 +85,7 @@ export type Database = {
           created_at: string
           department: string
           fabric: string
+          gallery: string[]
           id: string
           image_path: string | null
           image_url: string | null
@@ -93,13 +94,16 @@ export type Database = {
           name: string
           origin: string
           price: number
+          sizes: string[]
           tag: string
           updated_at: string
+          video: string | null
         }
         Insert: {
           created_at?: string
           department: string
           fabric?: string
+          gallery?: string[]
           id?: string
           image_path?: string | null
           image_url?: string | null
@@ -108,13 +112,16 @@ export type Database = {
           name: string
           origin?: string
           price?: number
+          sizes?: string[]
           tag?: string
           updated_at?: string
+          video?: string | null
         }
         Update: {
           created_at?: string
           department?: string
           fabric?: string
+          gallery?: string[]
           id?: string
           image_path?: string | null
           image_url?: string | null
@@ -123,8 +130,10 @@ export type Database = {
           name?: string
           origin?: string
           price?: number
+          sizes?: string[]
           tag?: string
           updated_at?: string
+          video?: string | null
         }
         Relationships: [
           {
