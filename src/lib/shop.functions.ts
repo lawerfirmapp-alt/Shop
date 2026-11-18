@@ -26,7 +26,7 @@ async function loadCatalog() {
     sb.from("departments").select("id, label, enabled, sort_order").order("sort_order"),
     sb
       .from("products")
-      .select("id, name, department, fabric, origin, price, tag, image_url, image_path, gallery, video, sizes, is_new_arrival, is_active, created_at")
+      .select("id, name, department, fabric, origin, price, tag, image_url, image_path, gallery, sizes, is_new_arrival, is_active, created_at")
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
   ]);
@@ -45,22 +45,28 @@ async function signLinks(bucket: string, paths: string[]) {
   return new Map((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl]));
 }
 
-/** Public: shop data. Uploaded photos/videos in the private stores get short-lived view links for active products only. */
+/** Public: shop data. Uploaded photos and the shop video get short-lived view links. */
 export const getStorefront = createServerFn({ method: "GET" }).handler(async () => {
   const catalog = await loadCatalog();
   const photoPaths = catalog.products.flatMap((p) => [p.image_path, ...(p.gallery ?? [])]).filter((x): x is string => !!x && isStoredFile(x));
-  const videoPaths = catalog.products.map((p) => p.video).filter((x): x is string => !!x && isStoredFile(x));
-  const [photos, videos] = await Promise.all([signLinks("product-photos", photoPaths), signLinks("product-videos", videoPaths)]);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: settings } = await supabaseAdmin.from("shop_settings").select("video").eq("id", 1).maybeSingle();
+  const videoPath = settings?.video ?? null;
+  const [photos, videos] = await Promise.all([
+    signLinks("product-photos", photoPaths),
+    signLinks("product-videos", videoPath && isStoredFile(videoPath) ? [videoPath] : []),
+  ]);
   const photo = (v: string) => (isStoredFile(v) ? photos.get(v) : v);
   return {
     ...catalog,
+    /** The one shop video (not tied to a product), as a viewing link. */
+    shopVideo: videoPath ? ((isStoredFile(videoPath) ? videos.get(videoPath) : videoPath) ?? null) : null,
     // Shoppers cannot sign links themselves; hand them the link instead of the storage path.
     products: catalog.products.map((p) => ({
       ...p,
       image_url: p.image_path ? (photos.get(p.image_path) ?? null) : p.image_url,
       image_path: null,
       gallery: (p.gallery ?? []).map(photo).filter((x): x is string => !!x),
-      video: p.video ? ((isStoredFile(p.video) ? videos.get(p.video) : p.video) ?? null) : null,
     })),
   };
 });

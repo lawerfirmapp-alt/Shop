@@ -30,7 +30,7 @@ const nav = [
   { to: "/admin/products", label: "Products & photos", icon: Package },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { to: "/admin/staff", label: "Staff", icon: Users },
-  { to: "/admin/settings", label: "Departments", icon: Settings },
+  { to: "/admin/settings", label: "Shop video & departments", icon: Settings },
 ] as const;
 
 function AdminLayout() {

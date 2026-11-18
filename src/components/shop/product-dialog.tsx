@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
-import { Minus, Play, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatRand, needsSize, SIZE_SCALE, type Product } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import { SizeGuide } from "./size-guide";
-
-type Media = { kind: "photo" | "video"; src: string };
 
 export function ProductDialog({
   product, mainImage, onClose, onAdd,
@@ -31,10 +29,7 @@ export function ProductDialog({
   }, [product?.id]);
 
   if (!product) return null;
-  const media: Media[] = [
-    ...[mainImage, ...(product.gallery ?? [])].filter((x): x is string => !!x).map((src) => ({ kind: "photo" as const, src })),
-    ...(product.video ? [{ kind: "video" as const, src: product.video }] : []),
-  ];
+  const media = [mainImage, ...(product.gallery ?? [])].filter((x): x is string => !!x);
   const current = media[active] ?? media[0];
   const sized = needsSize(product);
   const available = new Set(product.sizes ?? []);
@@ -56,26 +51,18 @@ export function ProductDialog({
           <div className="grid md:grid-cols-2">
             <div className="bg-muted">
               <div className="aspect-[4/5] overflow-hidden">
-                {current?.kind === "video" ? (
-                  <video key={current.src} src={current.src} controls autoPlay playsInline className="size-full bg-foreground/5 object-contain" />
-                ) : current ? (
-                  <img src={current.src} alt={product.name} className="size-full object-cover" />
-                ) : null}
+                {current && <img src={current} alt={product.name} className="size-full object-cover" />}
               </div>
               {media.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto p-3">
                   {media.map((m, i) => (
                     <button
-                      key={m.src + i}
+                      key={m + i}
                       onClick={() => setActive(i)}
-                      aria-label={m.kind === "video" ? "Play video" : `Photo ${i + 1}`}
+                      aria-label={`Photo ${i + 1}`}
                       className={cn("relative h-20 w-16 shrink-0 overflow-hidden border-2 bg-card", i === active ? "border-gold" : "border-transparent")}
                     >
-                      {m.kind === "video" ? (
-                        <span className="grid size-full place-items-center bg-sand"><Play className="size-5 text-gold" /></span>
-                      ) : (
-                        <img src={m.src} alt="" className="size-full object-cover" />
-                      )}
+                      <img src={m} alt="" className="size-full object-cover" />
                     </button>
                   ))}
                 </div>

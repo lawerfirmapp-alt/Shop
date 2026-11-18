@@ -145,6 +145,24 @@ export type Database = {
           },
         ]
       }
+      shop_settings: {
+        Row: {
+          id: number
+          updated_at: string
+          video: string | null
+        }
+        Insert: {
+          id?: number
+          updated_at?: string
+          video?: string | null
+        }
+        Update: {
+          id?: number
+          updated_at?: string
+          video?: string | null
+        }
+        Relationships: []
+      }
       staff: {
         Row: {
           active: boolean

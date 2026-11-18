@@ -58,3 +58,12 @@ export const adminStaffQuery = queryOptions({
   queryKey: ["admin", "staff"],
   queryFn: async () => must(await supabase.from("staff").select("*").order("full_name")) as StaffMember[],
 });
+
+export const adminShopSettingsQuery = queryOptions({
+  queryKey: ["admin", "shop-settings"],
+  queryFn: async () => {
+    const r = await supabase.from("shop_settings").select("video").eq("id", 1).maybeSingle();
+    if (r.error) throw new Error(r.error.message);
+    return { video: r.data?.video ?? null };
+  },
+});

@@ -28,8 +28,6 @@ export interface Product {
   sizes?: string[];
   /** Extra photos: web links, or uploaded files in the product-photos store. */
   gallery?: string[];
-  /** One video: a web link, or an uploaded file in the product-videos store. */
-  video?: string | null;
   created_at?: string;
 }
 

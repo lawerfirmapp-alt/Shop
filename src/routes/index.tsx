@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatRand, needsSize, visibleProducts, type Filter, type Product } from "@/lib/catalog";
 import { ProductDialog } from "@/components/shop/product-dialog";
+import { ShopVideo } from "@/components/shop/shop-video";
 import { useProductImages } from "@/lib/product-images";
 import { getStorefront, placeOrder } from "@/lib/shop.functions";
 import { SHOP_CONTACT, telLink, whatsappLink } from "@/lib/contact";
@@ -112,9 +113,6 @@ function Shop() {
           <span className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider">
             {p.tag || "New"}
           </span>
-        )}
-        {p.video && (
-          <span className="absolute bottom-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider">▶ Video</span>
         )}
       </button>
       <div className="flex flex-1 flex-col p-3 md:p-4">
@@ -310,6 +308,8 @@ function Shop() {
       >
         <MessageCircle className="size-5" /> <span className="hidden sm:inline">WhatsApp us</span>
       </a>
+
+      {data.shopVideo && <ShopVideo src={data.shopVideo} />}
 
       <ProductDialog product={viewing} mainImage={viewing ? images[viewing.id] : undefined} onClose={() => setViewing(null)} onAdd={add} />
 

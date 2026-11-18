@@ -29,6 +29,13 @@
       "when": 1794951639849,
       "tag": "0003_product_sizes_gallery_video",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794973871942,
+      "tag": "0004_shop_video_setting",
+      "breakpoints": true
     }
   ]
 }

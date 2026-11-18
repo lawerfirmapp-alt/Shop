@@ -34,5 +34,6 @@ use the editor.
 - Storefront reads via `getStorefront` (publishable client, server fn); orders are written only by `placeOrder`, which re-prices from the DB and inserts with the admin client. Why: shoppers have no direct access to the orders table.
 - Admin pages use the browser client with RLS gated by `has_role(...,'admin')`; first signup becomes admin via a trigger on auth.users. Why: owner-only admin without a setup step.
 - Product photos are in the private `product-photos` bucket (workspace blocks public buckets); only admins can read the bucket directly; `getStorefront` signs shopper photo links server-side and admin pages sign in the browser via `useProductImages`. Sample photos are static files in `public/products/`.
+- The one shop video lives in `shop_settings` (single row, owner-only) with the file in the private `product-videos` bucket; `getStorefront` signs it and `ShopVideo` renders it client-only (signed links differ per load). Pop-up timing is in `src/lib/shop-video.ts`, tested. Why: the video belongs to the shop, not a product.
 - Shop contact details (address, phone/WhatsApp) live in `src/lib/contact.ts` with `whatsappLink()`; tested. Why: one source for every contact link on the shop.
 <!-- AGENT-MEMORY:END -->
