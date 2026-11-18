@@ -219,12 +219,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_shop_video: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      is_shop_media: {
+        Args: { _bucket: string; _path: string }
+        Returns: boolean
+      }
+      place_order: {
+        Args: {
+          p_address: string
+          p_customer_name: string
+          p_email: string
+          p_lines: Json
+          p_notes: string
+          p_phone: string
+        }
+        Returns: Json
       }
     }
     Enums: {

@@ -36,6 +36,13 @@
       "when": 1794973871942,
       "tag": "0004_shop_video_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794974745711,
+      "tag": "0005_portable_shop_media_and_orders",
+      "breakpoints": true
     }
   ]
 }
