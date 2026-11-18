@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatRand, needsSize, visibleProducts, type Filter, type Product } from "@/lib/catalog";
 import { ProductDialog } from "@/components/shop/product-dialog";
-import { PromoVideo } from "@/components/shop/promo-video";
 import { useProductImages } from "@/lib/product-images";
 import { getStorefront, placeOrder } from "@/lib/shop.functions";
 import { SHOP_CONTACT, telLink, whatsappLink } from "@/lib/contact";
@@ -52,11 +51,6 @@ function Shop() {
 
   const list = useMemo(() => visibleProducts(products, departments, filter, query), [products, departments, filter, query]);
   const newArrivals = useMemo(() => visibleProducts(products, departments, "new").slice(0, 4), [products, departments]);
-  /** First product video used as the professional brand/promo film (not shown as a product). */
-  const promoVideoSrc = useMemo(
-    () => products.find((p) => p.video)?.video ?? null,
-    [products],
-  );
   const openDepts = departments.filter((d) => d.enabled);
   const count = cart.reduce((n, l) => n + l.qty, 0);
   const total = cart.reduce((n, l) => n + l.qty * l.price, 0);
@@ -119,6 +113,9 @@ function Shop() {
             {p.tag || "New"}
           </span>
         )}
+        {p.video && (
+          <span className="absolute bottom-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider">▶ Video</span>
+        )}
       </button>
       <div className="flex flex-1 flex-col p-3 md:p-4">
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-gold">{p.fabric} · {p.origin}</p>
@@ -137,9 +134,6 @@ function Shop() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Professional brand video — not shown as a product. Auto-plays briefly on open, then can be reopened. */}
-      {promoVideoSrc && <PromoVideo src={promoVideoSrc} />}
-
       <div className="bg-gold-soft py-2.5 text-center text-foreground eyebrow">
         African fashion · Order now, pay on confirmation · South Africa
       </div>
