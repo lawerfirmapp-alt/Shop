@@ -176,33 +176,25 @@ function Shop() {
 
       <main>
         <section className="bg-cream">
-          <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-10 md:grid-cols-2 md:gap-12 md:px-10 md:py-14">
-            {/* Photo: add the file as public/hero-banner.jpg. Until it exists the old photo is shown. */}
-            <img
-              src="/hero-banner.jpg"
-              onError={(e) => {
-                const el = e.currentTarget;
-                if (el.dataset.fallback) return;
-                el.dataset.fallback = "1";
-                el.src = heroImg;
-              }}
-              alt="Woman in a navy outfit with African print sash and belt"
-              width={700}
-              height={1024}
-              className="mx-auto h-auto max-h-[640px] w-auto max-w-full object-contain shadow-card md:justify-self-end"
-            />
-            <div className="text-center md:text-left">
-              <p className="eyebrow text-gold">Tsholo R Fashion House</p>
-              <h1 className="mt-3 text-5xl font-bold leading-tight md:text-6xl">Style that moves with you</h1>
-              <p className="mt-3 font-display text-3xl italic text-gold md:text-4xl">Dress with Purpose</p>
-              <p className="mt-5 eyebrow text-muted-foreground">Elegance &nbsp;|&nbsp; Confidence &nbsp;|&nbsp; You</p>
-              <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
-                <Button variant="gold" size="xl" onClick={() => pick("women")}>Shop women</Button>
-                {openDepts.some((d) => d.id === "men") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("men")}>Shop men</Button>}
-                {openDepts.some((d) => d.id === "kids") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("kids")}>Shop kids</Button>}
-                {openDepts.some((d) => d.id === "family") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("family")}>Family sets</Button>}
-              </div>
-            </div>
+          {/* Full-width brand banner (public/hero-banner.png). If it fails to load the old photo is shown. */}
+          <img
+            src="/hero-banner.png"
+            onError={(e) => {
+              const el = e.currentTarget;
+              if (el.dataset.fallback) return;
+              el.dataset.fallback = "1";
+              el.src = heroImg;
+            }}
+            alt="Tsholo R Fashion House. Style that moves with you. Custom designs, alterations and medical scrub uniforms. Dress with purpose."
+            width={2048}
+            height={768}
+            className="block h-auto w-full"
+          />
+          <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-3 px-5 py-8 md:px-10">
+            <Button variant="gold" size="xl" onClick={() => pick("women")}>Shop women</Button>
+            {openDepts.some((d) => d.id === "men") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("men")}>Shop men</Button>}
+            {openDepts.some((d) => d.id === "kids") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("kids")}>Shop kids</Button>}
+            {openDepts.some((d) => d.id === "family") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("family")}>Family sets</Button>}
           </div>
         </section>
         <div className="kente-rule" />
