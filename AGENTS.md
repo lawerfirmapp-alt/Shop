@@ -31,9 +31,11 @@ use the editor.
 
 <!-- AGENT-MEMORY:BEGIN -->
 - Products, departments, orders and staff live in Lovable Cloud tables; pure shop rules (visibility, pricing, statuses) live in `src/lib/catalog.ts` and are unit-tested. Why: storefront, checkout and admin share one set of rules.
-- Storefront reads via `getStorefront` (publishable client, server fn); orders are written only by `placeOrder`, which re-prices from the DB and inserts with the admin client. Why: shoppers have no direct access to the orders table.
+- Shopper-facing server code uses only the publishable key (falls back to baked-in `VITE_*` values): `getStorefront` reads + signs media allowed by `is_shop_media`, and `placeOrder` calls the `place_order` DB function, which re-prices and inserts. Never use the admin client on shopper paths. Why: the app must also run on Vercel/Netlify, where the service-role key is unavailable.
 - Admin pages use the browser client with RLS gated by `has_role(...,'admin')`; first signup becomes admin via a trigger on auth.users. Why: owner-only admin without a setup step.
-- Product photos are in the private `product-photos` bucket (workspace blocks public buckets); only admins can read the bucket directly; `getStorefront` signs shopper photo links server-side and admin pages sign in the browser via `useProductImages`. Sample photos are static files in `public/products/`.
+- Product photos are in the private `product-photos` bucket (workspace blocks public buckets); shoppers can sign only on-show files (`is_shop_media` storage policy); `getStorefront` signs shopper photo links server-side and admin pages sign in the browser via `useProductImages`. Sample photos are static files in `public/products/`.
 - The one shop video lives in `shop_settings` (single row, owner-only) with the file in the private `product-videos` bucket; `getStorefront` signs it and `ShopVideo` renders it client-only (signed links differ per load). Pop-up timing is in `src/lib/shop-video.ts`, tested. Why: the video belongs to the shop, not a product.
 - Shop contact details (address, phone/WhatsApp) live in `src/lib/contact.ts` with `whatsappLink()`; tested. Why: one source for every contact link on the shop.
+- Logo and other brand files are static in `public/brand/` (see `src/lib/brand.ts`); Google sign-in is shown only on Lovable hosts (`googleSignInAvailable`, tested) and owners can set a password in admin settings. Why: Lovable asset links and Google broker do not exist on other hosts.
+- `netlify.toml` publishes `dist`; Vercel/Netlify presets are auto-detected by nitro — do not add host plugins to vite.config.ts.
 <!-- AGENT-MEMORY:END -->

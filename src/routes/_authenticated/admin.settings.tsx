@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Film, Trash2 } from "lucide-react";
+import { Film, KeyRound, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { adminDepartmentsQuery, adminProductsQuery, adminShopSettingsQuery } from "@/lib/admin-data";
@@ -60,7 +62,39 @@ function DepartmentsAdmin() {
           );
         })}
       </div>
+      <PasswordSettings />
     </div>
+  );
+}
+
+/** Google sign-in only works on Lovable hosting; a password lets the owner sign in on Vercel or Netlify too. */
+function PasswordSettings() {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (password.length < 8) { toast.error("Use at least 8 characters"); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setPassword("");
+    toast.success("Password saved. You can now sign in with your email and this password.");
+  };
+  return (
+    <section className="mt-12">
+      <p className="eyebrow text-gold">Your account</p>
+      <h2 className="mt-1 text-4xl font-bold">Sign-in password</h2>
+      <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+        If you host the shop on Vercel or Netlify, "Continue with Google" is not available there. Set a password here so you can sign in with your email instead.
+      </p>
+      <form className="mt-6 flex max-w-xl flex-wrap items-end gap-3 border border-border bg-card p-4" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+        <div className="min-w-56 flex-1 space-y-1.5">
+          <Label htmlFor="new-password">New password</Label>
+          <Input id="new-password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <Button type="submit" variant="gold" disabled={busy}><KeyRound /> {busy ? "Saving…" : "Save password"}</Button>
+      </form>
+    </section>
   );
 }
 

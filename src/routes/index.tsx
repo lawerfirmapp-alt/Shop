@@ -5,7 +5,7 @@ import { Search, ShoppingBag, Minus, Plus, Sparkles, ShieldCheck, Truck, CheckCi
 import { toast } from "sonner";
 
 import heroImg from "@/assets/hero-ankara.jpg";
-import logo from "@/assets/tsholo-r-fashion-house-logo.png.asset.json";
+import { LOGO_SRC } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,7 +139,7 @@ function Shop() {
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-5 py-4 md:flex-nowrap md:px-10">
           <a href="/" className="flex items-center" aria-label="Tsholo R Fashion House home">
-            <img src={logo.url} alt="Tsholo R Fashion House" width={632} height={276} className="h-14 w-auto md:h-20" />
+            <img src={LOGO_SRC} alt="Tsholo R Fashion House" width={632} height={276} className="h-14 w-auto md:h-20" />
           </a>
           <label className="order-3 flex w-full items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 md:order-none md:ml-auto md:w-80">
             <Search className="size-4 text-muted-foreground" />
@@ -291,7 +291,7 @@ function Shop() {
 
       <div className="kente-rule" />
       <footer className="bg-cream py-10 text-center">
-        <img src={logo.url} alt="Tsholo R Fashion House" width={632} height={276} loading="lazy" className="mx-auto h-24 w-auto" />
+        <img src={LOGO_SRC} alt="Tsholo R Fashion House" width={632} height={276} loading="lazy" className="mx-auto h-24 w-auto" />
         <p className="mt-2 text-sm text-muted-foreground">Wear African. Live African. Be Proud.</p>
         <p className="mt-4 px-5 text-sm text-muted-foreground">{SHOP_CONTACT.addressLines.join(", ")}</p>
         <p className="mt-1 text-sm text-muted-foreground">

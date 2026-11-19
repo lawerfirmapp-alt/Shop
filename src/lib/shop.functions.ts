@@ -2,12 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import type { Database, Json } from "@/integrations/supabase/types";
-import { isStoredFile, priceOrder, type Department, type Product } from "@/lib/catalog";
+import type { Database } from "@/integrations/supabase/types";
+import { isStoredFile, type Department, type Product } from "@/lib/catalog";
 
+// Works on Lovable, Vercel and Netlify: server env vars first, then the public values baked in at build time.
 function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  return createClient<Database>(process.env["SUPABASE_URL"]!, key, {
+  const url = process.env["SUPABASE_URL"] || import.meta.env["VITE_SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) throw new Error("The shop's database address is missing.");
+  return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => {
@@ -20,8 +23,9 @@ function publicClient() {
   });
 }
 
-async function loadCatalog() {
-  const sb = publicClient();
+type Sb = ReturnType<typeof publicClient>;
+
+async function loadCatalog(sb: Sb) {
   const [d, p] = await Promise.all([
     sb.from("departments").select("id, label, enabled, sort_order").order("sort_order"),
     sb
@@ -38,30 +42,33 @@ async function loadCatalog() {
   };
 }
 
-async function signLinks(bucket: string, paths: string[]) {
+/** Shop photos/video are private files; the database lets shoppers open only what is on show. */
+async function signLinks(sb: Sb, bucket: string, paths: string[]) {
   if (paths.length === 0) return new Map<string, string>();
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.storage.from(bucket).createSignedUrls([...new Set(paths)], 60 * 60 * 24);
-  return new Map((data ?? []).filter((d) => d.signedUrl && d.path).map((d) => [d.path!, d.signedUrl]));
+  const { data } = await sb.storage.from(bucket).createSignedUrls([...new Set(paths)], 60 * 60 * 24);
+  return new Map((data ?? []).filter((d) => d.signedUrl && d.path && !d.error).map((d) => [d.path!, d.signedUrl]));
 }
 
 /** Public: shop data. Uploaded photos and the shop video get short-lived view links. */
 export const getStorefront = createServerFn({ method: "GET" }).handler(async () => {
-  const catalog = await loadCatalog();
-  const photoPaths = catalog.products.flatMap((p) => [p.image_path, ...(p.gallery ?? [])]).filter((x): x is string => !!x && isStoredFile(x));
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: settings } = await supabaseAdmin.from("shop_settings").select("video").eq("id", 1).maybeSingle();
-  const videoPath = settings?.video ?? null;
+  const sb = publicClient();
+  const [catalog, video] = await Promise.all([loadCatalog(sb), sb.rpc("get_shop_video")]);
+  const enabled = new Set(catalog.departments.filter((d) => d.enabled).map((d) => d.id));
+  const photoPaths = catalog.products
+    .filter((p) => enabled.has(p.department))
+    .flatMap((p) => [p.image_path, ...(p.gallery ?? [])])
+    .filter((x): x is string => !!x && isStoredFile(x));
+  const videoPath = video.data ?? null;
   const [photos, videos] = await Promise.all([
-    signLinks("product-photos", photoPaths),
-    signLinks("product-videos", videoPath && isStoredFile(videoPath) ? [videoPath] : []),
+    signLinks(sb, "product-photos", photoPaths),
+    signLinks(sb, "product-videos", videoPath && isStoredFile(videoPath) ? [videoPath] : []),
   ]);
   const photo = (v: string) => (isStoredFile(v) ? photos.get(v) : v);
   return {
     ...catalog,
     /** The one shop video (not tied to a product), as a viewing link. */
     shopVideo: videoPath ? ((isStoredFile(videoPath) ? videos.get(videoPath) : videoPath) ?? null) : null,
-    // Shoppers cannot sign links themselves; hand them the link instead of the storage path.
+    // Shoppers get the viewing link instead of the storage path.
     products: catalog.products.map((p) => ({
       ...p,
       image_url: p.image_path ? (photos.get(p.image_path) ?? null) : p.image_url,
@@ -83,27 +90,23 @@ const orderSchema = z.object({
     .max(50),
 });
 
-/** Public: shoppers place an order now and pay once the payment system is connected. */
+/** Public: shoppers place an order now and pay later. The database re-prices every line and saves the order. */
 export const placeOrder = createServerFn({ method: "POST" })
   .inputValidator((input: z.input<typeof orderSchema>) => orderSchema.parse(input))
   .handler(async ({ data }) => {
-    const { products, departments } = await loadCatalog();
-    const { lines, total } = priceOrder(data.lines, products, departments);
-    // Shoppers cannot read or write orders directly; the order is written here after pricing.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
-      .from("orders")
-      .insert({
-        customer_name: data.customer_name,
-        phone: data.phone,
-        email: data.email || null,
-        address: data.address,
-        notes: data.notes || null,
-        items: lines as unknown as Json,
-        total,
-      })
-      .select("order_number")
-      .single();
-    if (error) throw new Error("We couldn't save your order. Please try again.");
-    return { orderNumber: row.order_number, total };
+    const { data: res, error } = await publicClient().rpc("place_order", {
+      p_customer_name: data.customer_name,
+      p_phone: data.phone,
+      p_email: data.email ?? "",
+      p_address: data.address,
+      p_notes: data.notes ?? "",
+      p_lines: data.lines,
+    });
+    if (error) {
+      console.error("place_order failed", error);
+      // P0001 = a friendly message raised by the order check (sold out, missing size, ...).
+      throw new Error(error.code === "P0001" ? error.message : "We couldn't save your order. Please try again.");
+    }
+    const r = res as { orderNumber: number; total: number };
+    return { orderNumber: r.orderNumber, total: Number(r.total) };
   });

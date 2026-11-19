@@ -1,0 +1,4 @@
+# Netlify: build the shop and publish the "dist" folder (the server part is set up automatically).
+[build]
+  command = "npm run build"
+  publish = "dist"
