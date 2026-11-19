@@ -26,7 +26,7 @@
  *
  * To add a new semantic color:
  * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * 2. Register it in @theme inline as --color-<n>: var(--<n>)
  */
 
 @theme inline {
@@ -82,50 +82,51 @@
 
 :root {
   --radius: 0.25rem;
-  --ink: oklch(0.3 0.04 35);
-  --ink-foreground: oklch(0.98 0.01 40);
-  --gold: oklch(0.6 0.105 40);
-  --gold-foreground: oklch(0.99 0.006 40);
-  --gold-soft: oklch(0.92 0.035 38);
-  --cream: oklch(0.975 0.012 40);
-  --sand: oklch(0.94 0.028 38);
-  --background: oklch(0.99 0.006 40);
-  --foreground: oklch(0.3 0.04 35);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.3 0.04 35);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.3 0.04 35);
-  --primary: oklch(0.36 0.05 35);
-  --primary-foreground: oklch(0.98 0.01 40);
-  --secondary: oklch(0.95 0.02 38);
-  --secondary-foreground: oklch(0.3 0.04 35);
-  --muted: oklch(0.96 0.014 38);
-  --muted-foreground: oklch(0.5 0.04 35);
-  --accent: oklch(0.95 0.025 38);
-  --accent-foreground: oklch(0.3 0.04 35);
+  /* Palette taken from the Tsholo R Fashion House banner: peach satin, bronze gold, deep navy */
+  --ink: oklch(0.28 0.08 275);
+  --ink-foreground: oklch(0.98 0.01 50);
+  --gold: oklch(0.62 0.13 65);
+  --gold-foreground: oklch(0.99 0.008 60);
+  --gold-soft: oklch(0.89 0.06 55);
+  --cream: oklch(0.95 0.035 52);
+  --sand: oklch(0.91 0.05 50);
+  --background: oklch(0.965 0.025 52);
+  --foreground: oklch(0.25 0.04 30);
+  --card: oklch(0.99 0.008 55);
+  --card-foreground: oklch(0.25 0.04 30);
+  --popover: oklch(0.99 0.008 55);
+  --popover-foreground: oklch(0.25 0.04 30);
+  --primary: oklch(0.28 0.08 275);
+  --primary-foreground: oklch(0.98 0.01 50);
+  --secondary: oklch(0.93 0.04 52);
+  --secondary-foreground: oklch(0.25 0.04 30);
+  --muted: oklch(0.94 0.03 52);
+  --muted-foreground: oklch(0.48 0.045 40);
+  --accent: oklch(0.92 0.045 52);
+  --accent-foreground: oklch(0.25 0.04 30);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.9 0.028 38);
-  --input: oklch(0.9 0.028 38);
-  --ring: oklch(0.6 0.105 40);
-  --chart-1: oklch(0.6 0.105 40);
-  --chart-2: oklch(0.72 0.08 30);
-  --chart-3: oklch(0.45 0.06 35);
-  --chart-4: oklch(0.82 0.06 45);
-  --chart-5: oklch(0.55 0.09 20);
-  --sidebar: oklch(0.975 0.012 40);
-  --sidebar-foreground: oklch(0.3 0.04 35);
-  --sidebar-primary: oklch(0.6 0.105 40);
-  --sidebar-primary-foreground: oklch(0.99 0.006 40);
-  --sidebar-accent: oklch(0.95 0.025 38);
-  --sidebar-accent-foreground: oklch(0.3 0.04 35);
-  --sidebar-border: oklch(0.9 0.028 38);
-  --sidebar-ring: oklch(0.6 0.105 40);
-  --rose-light: oklch(0.8 0.07 45);
-  --rose-deep: oklch(0.5 0.09 35);
-  --gradient-hero: linear-gradient(90deg, oklch(0.985 0.01 40 / 0.96) 0%, oklch(0.985 0.01 40 / 0.82) 38%, oklch(0.985 0.01 40 / 0) 70%);
-  --shadow-gold-value: 0 10px 30px -12px oklch(0.6 0.105 40 / 0.55);
-  --shadow-card-value: 0 20px 40px -24px oklch(0.3 0.04 35 / 0.3);
+  --border: oklch(0.87 0.05 52);
+  --input: oklch(0.87 0.05 52);
+  --ring: oklch(0.62 0.13 65);
+  --chart-1: oklch(0.62 0.13 65);
+  --chart-2: oklch(0.72 0.08 45);
+  --chart-3: oklch(0.28 0.08 275);
+  --chart-4: oklch(0.82 0.07 55);
+  --chart-5: oklch(0.55 0.12 45);
+  --sidebar: oklch(0.95 0.035 52);
+  --sidebar-foreground: oklch(0.25 0.04 30);
+  --sidebar-primary: oklch(0.28 0.08 275);
+  --sidebar-primary-foreground: oklch(0.98 0.01 50);
+  --sidebar-accent: oklch(0.92 0.045 52);
+  --sidebar-accent-foreground: oklch(0.25 0.04 30);
+  --sidebar-border: oklch(0.87 0.05 52);
+  --sidebar-ring: oklch(0.62 0.13 65);
+  --rose-light: oklch(0.8 0.09 55);
+  --rose-deep: oklch(0.45 0.1 55);
+  --gradient-hero: linear-gradient(90deg, oklch(0.965 0.025 52 / 0.96) 0%, oklch(0.965 0.025 52 / 0.82) 38%, oklch(0.965 0.025 52 / 0) 70%);
+  --shadow-gold-value: 0 10px 30px -12px oklch(0.62 0.13 65 / 0.55);
+  --shadow-card-value: 0 20px 40px -24px oklch(0.28 0.08 275 / 0.3);
 }
 
 @layer base {

@@ -25,9 +25,9 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Tsholo R Fashion House | African Fashion for Women, Men & Family" },
-      { name: "description", content: "Shop South African Shweshwe and Ankara for women, men, kids and matching family sets, plus Kente, Mudcloth and handmade African accessories." },
-      { property: "og:title", content: "Tsholo R Fashion House | African Fashion for the Whole Family" },
-      { property: "og:description", content: "South African Ankara & Shweshwe for women, men and matching family sets — wear your story." },
+      { name: "description", content: "Style that moves with you. Dress with Purpose. Shop South African Shweshwe and Ankara for women, men, kids and matching family sets, plus Kente, Mudcloth and handmade African accessories." },
+      { property: "og:title", content: "Tsholo R Fashion House | Style that moves with you" },
+      { property: "og:description", content: "Style that moves with you. Dress with Purpose. South African Ankara & Shweshwe for women, men and matching family sets." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -175,27 +175,28 @@ function Shop() {
       </header>
 
       <main>
-        <section className="relative overflow-hidden bg-cream">
-          <img src={heroImg} alt="Woman in a South African Ankara print gown" width={1600} height={1008} className="absolute inset-0 size-full object-cover object-[70%_center]" />
-          <div className="absolute inset-0 bg-hero-fade" />
-          <div className="relative mx-auto flex min-h-[560px] max-w-7xl items-center px-5 py-20 md:px-10">
-            <div className="max-w-xl animate-rise text-foreground">
-              <p className="eyebrow text-gold">Celebrating African style</p>
-              <h1 className="mt-4 text-5xl font-bold leading-[1.02] md:text-7xl">
-                Wear your story.
-                <br />
-                <em className="text-gold">Live your culture.</em>
-              </h1>
-              <p className="mt-6 max-w-md leading-relaxed text-foreground/75">
-                South African Ankara and Shweshwe pieces, with treasured prints from across the continent — made for women, men, kids and whole families who wear them proudly.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button variant="gold" size="xl" onClick={() => pick("women")}>Shop women</Button>
-                {openDepts.some((d) => d.id === "men") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("men")}>Shop men</Button>}
-                {openDepts.some((d) => d.id === "kids") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("kids")}>Shop kids</Button>}
-                {openDepts.some((d) => d.id === "family") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("family")}>Family sets</Button>}
-              </div>
-            </div>
+        <section className="bg-cream">
+          <div className="mx-auto max-w-6xl">
+            {/* Brand banner: add the file as public/hero-banner.jpg. Until it exists the old photo is shown. */}
+            <img
+              src="/hero-banner.jpg"
+              onError={(e) => {
+                const el = e.currentTarget;
+                if (el.dataset.fallback) return;
+                el.dataset.fallback = "1";
+                el.src = heroImg;
+              }}
+              alt="Tsholo R Fashion House. Style that moves with you. Dress with Purpose."
+              width={1536}
+              height={1024}
+              className="block h-auto w-full"
+            />
+          </div>
+          <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-3 px-5 py-8 md:px-10">
+            <Button variant="gold" size="xl" onClick={() => pick("women")}>Shop women</Button>
+            {openDepts.some((d) => d.id === "men") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("men")}>Shop men</Button>}
+            {openDepts.some((d) => d.id === "kids") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("kids")}>Shop kids</Button>}
+            {openDepts.some((d) => d.id === "family") && <Button variant="bag" size="xl" className="bg-background/70" onClick={() => pick("family")}>Family sets</Button>}
           </div>
         </section>
         <div className="kente-rule" />
@@ -292,7 +293,7 @@ function Shop() {
       <div className="kente-rule" />
       <footer className="bg-cream py-10 text-center">
         <img src={LOGO_SRC} alt="Tsholo R Fashion House" width={632} height={276} loading="lazy" className="mx-auto h-24 w-auto" />
-        <p className="mt-2 text-sm text-muted-foreground">Wear African. Live African. Be Proud.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Style that moves with you · Dress with Purpose</p>
         <p className="mt-4 px-5 text-sm text-muted-foreground">{SHOP_CONTACT.addressLines.join(", ")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Phone & WhatsApp:{" "}
