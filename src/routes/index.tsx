@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import heroImg from "@/assets/hero-ankara.jpg";
 import { LOGO_SRC } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { formatRand, needsSize, visibleProducts, type Filter, type Product } from "@/lib/catalog";
 import { ProductDialog } from "@/components/shop/product-dialog";
 import { ShopVideo } from "@/components/shop/shop-video";
+import { SubscribeForm, subscribe, subscribeMessage } from "@/components/shop/subscribe-form";
+import { Testimonials } from "@/components/shop/testimonials";
 import { useProductImages } from "@/lib/product-images";
 import { getStorefront, placeOrder } from "@/lib/shop.functions";
 import { SHOP_CONTACT, telLink, whatsappLink } from "@/lib/contact";
@@ -48,6 +51,7 @@ function Shop() {
   const [step, setStep] = useState<"bag" | "details" | "done">("bag");
   const [placed, setPlaced] = useState<{ orderNumber: number; total: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [news, setNews] = useState(false);
   const [viewing, setViewing] = useState<Product | null>(null);
 
   const list = useMemo(() => visibleProducts(products, departments, filter, query), [products, departments, filter, query]);
@@ -80,13 +84,19 @@ function Shop() {
   const submitOrder = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    const customerName = String(f.get("name") ?? "");
+    const customerEmail = String(f.get("email") ?? "").trim();
+    if (news && !customerEmail) {
+      toast.error("Please enter your email address to get our emails.");
+      return;
+    }
     setBusy(true);
     try {
       const res = await placeOrder({
         data: {
-          customer_name: String(f.get("name") ?? ""),
+          customer_name: customerName,
           phone: String(f.get("phone") ?? ""),
-          email: String(f.get("email") ?? ""),
+          email: customerEmail,
           address: String(f.get("address") ?? ""),
           notes: String(f.get("notes") ?? ""),
           lines: cart.map((l) => ({ productId: l.id, qty: l.qty, size: l.size })),
@@ -95,6 +105,16 @@ function Shop() {
       setPlaced(res);
       setCart([]);
       setStep("done");
+      if (news) {
+        // The order is already saved; signing up for news is an extra the shopper ticked.
+        try {
+          const r = await subscribe({ name: customerName, email: customerEmail, whatsapp: "", consentEmail: true, consentWhatsapp: false, source: "checkout" });
+          toast.success(subscribeMessage(r));
+        } catch {
+          toast.error("Your order is saved, but we couldn't sign you up for emails. You can sign up at the bottom of the shop.");
+        }
+        setNews(false);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       toast.error(msg.startsWith("[") ? "Please check your details and try again." : msg || "Something went wrong");
@@ -259,6 +279,8 @@ function Shop() {
           </div>
         </section>
 
+        <Testimonials items={data.testimonials} products={products.map((p) => ({ id: p.id, name: p.name }))} />
+
         <section id="contact" className="mx-auto max-w-7xl px-5 py-16 md:px-10">
           <div className="text-center">
             <p className="eyebrow text-gold">Get in touch</p>
@@ -290,7 +312,10 @@ function Shop() {
 
       <div className="kente-rule" />
       <footer className="bg-cream py-10 text-center">
-        <img src={LOGO_SRC} alt="Tsholo R Fashion House" width={632} height={276} loading="lazy" className="mx-auto h-24 w-auto" />
+        <div className="px-5">
+          <SubscribeForm />
+        </div>
+        <img src={LOGO_SRC} alt="Tsholo R Fashion House" width={632} height={276} loading="lazy" className="mx-auto mt-10 h-24 w-auto" />
         <p className="mt-2 text-sm text-muted-foreground">Style that moves with you · Dress with Purpose</p>
         <p className="mt-4 px-5 text-sm text-muted-foreground">{SHOP_CONTACT.addressLines.join(", ")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -338,6 +363,13 @@ function Shop() {
               <div className="space-y-1.5"><Label htmlFor="o-email">Email (optional)</Label><Input id="o-email" name="email" type="email" maxLength={255} /></div>
               <div className="space-y-1.5"><Label htmlFor="o-address">Delivery address</Label><Textarea id="o-address" name="address" required minLength={5} maxLength={500} /></div>
               <div className="space-y-1.5"><Label htmlFor="o-notes">Notes (fitting, colour…)</Label><Textarea id="o-notes" name="notes" maxLength={500} /></div>
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox className="mt-0.5" checked={news} onCheckedChange={(v) => setNews(v === true)} aria-label="Send me new collections and specials by email" />
+                <span>
+                  Send me new collections and specials by email
+                  <span className="block text-xs text-muted-foreground">Needs your email above. We'll email you a link to confirm, and you can unsubscribe at any time.</span>
+                </span>
+              </label>
               <div className="mt-auto space-y-3 border-t border-border pt-4">
                 <div className="flex justify-between text-lg font-semibold"><span>Total</span><span>{formatRand(total)}</span></div>
                 <Button type="submit" variant="gold" size="xl" className="w-full" disabled={busy}>{busy ? "Placing order…" : "Place order"}</Button>
