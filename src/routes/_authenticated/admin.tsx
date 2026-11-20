@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, LogOut, Package, Settings, ShoppingCart, Store, Users } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LayoutDashboard, LogOut, Mail, Megaphone, MessageSquareQuote, Package, Settings, ShoppingCart, Store, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,9 @@ const nav = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/admin/products", label: "Products & photos", icon: Package },
   { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { to: "/admin/testimonials", label: "Testimonials", icon: MessageSquareQuote },
+  { to: "/admin/subscribers", label: "Subscribers", icon: Mail },
+  { to: "/admin/campaigns", label: "Campaigns", icon: Megaphone },
   { to: "/admin/staff", label: "Staff", icon: Users },
   { to: "/admin/settings", label: "Shop video & departments", icon: Settings },
 ] as const;
@@ -37,6 +40,19 @@ function AdminLayout() {
   const { isAdmin, user } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Reviews waiting for the owner's approval (shown as a badge in the menu).
+  const pendingReviews =
+    useQuery({
+      queryKey: ["admin", "testimonials-pending"],
+      enabled: isAdmin,
+      refetchInterval: 60_000,
+      queryFn: async () => {
+        const { count, error } = await supabase.from("testimonials").select("id", { count: "exact", head: true }).eq("status", "pending");
+        if (error) throw new Error(error.message);
+        return count ?? 0;
+      },
+    }).data ?? 0;
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -62,12 +78,12 @@ function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-cream md:flex">
-      <aside className="border-b border-border bg-card md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:border-b-0 md:border-r">
+      <aside className="border-b border-border bg-card md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto md:border-b-0 md:border-r">
         <div className="px-5 py-4">
           <img src={LOGO_SRC} alt="Tsholo R Fashion House" width={632} height={276} className="h-12 w-auto" />
           <p className="mt-1 text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">Store admin</p>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-0">
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-col md:pb-24">
           {nav.map(({ to, label, icon: Icon, ...rest }) => (
             <Link
               key={to}
@@ -76,10 +92,15 @@ function AdminLayout() {
               className="flex shrink-0 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[status=active]:bg-gold/15 data-[status=active]:font-semibold data-[status=active]:text-foreground"
             >
               <Icon className="size-4" /> {label}
+              {to === "/admin/testimonials" && pendingReviews > 0 && (
+                <span className="ml-auto rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-semibold text-gold-foreground" aria-label={`${pendingReviews} reviews waiting`}>
+                  {pendingReviews}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
-        <div className="hidden space-y-1 border-t border-border px-3 py-3 md:absolute md:inset-x-0 md:bottom-0 md:block">
+        <div className="hidden space-y-1 border-t border-border bg-card px-3 py-3 md:fixed md:bottom-0 md:block md:w-64">
           <Link to="/" className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><Store className="size-4" /> View shop</Link>
           <button onClick={signOut} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><LogOut className="size-4" /> Sign out</button>
           <p className="truncate px-3 pt-1 text-xs text-muted-foreground">{user.email}</p>
