@@ -52,7 +52,12 @@ async function signLinks(sb: Sb, bucket: string, paths: string[]) {
 /** Public: shop data. Uploaded photos and the shop video get short-lived view links. */
 export const getStorefront = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
-  const [catalog, video] = await Promise.all([loadCatalog(sb), sb.rpc("get_shop_video")]);
+  const [catalog, video, reviews] = await Promise.all([
+    loadCatalog(sb),
+    sb.rpc("get_shop_video"),
+    // Only approved testimonials are readable by shoppers.
+    sb.from("testimonials").select("id, name, rating, message, product_id, created_at").eq("status", "approved").order("created_at", { ascending: false }).limit(12),
+  ]);
   const enabled = new Set(catalog.departments.filter((d) => d.enabled).map((d) => d.id));
   const photoPaths = catalog.products
     .filter((p) => enabled.has(p.department))
@@ -66,6 +71,7 @@ export const getStorefront = createServerFn({ method: "GET" }).handler(async () 
   const photo = (v: string) => (isStoredFile(v) ? photos.get(v) : v);
   return {
     ...catalog,
+    testimonials: reviews.data ?? [],
     /** The one shop video (not tied to a product), as a viewing link. */
     shopVideo: videoPath ? ((isStoredFile(videoPath) ? videos.get(videoPath) : videoPath) ?? null) : null,
     // Shoppers get the viewing link instead of the storage path.

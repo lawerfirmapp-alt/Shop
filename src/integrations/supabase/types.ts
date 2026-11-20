@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaign_batches: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          error: string | null
+          id: number
+          recipients: number
+          request_id: number | null
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          error?: string | null
+          id?: never
+          recipients: number
+          request_id?: number | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          error?: string | null
+          id?: never
+          recipients?: number
+          request_id?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_batches_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          channel: string
+          created_at: string
+          ends_on: string | null
+          failed_count: number
+          html: string | null
+          id: string
+          image_path: string | null
+          kind: string
+          message: string
+          product_ids: string[]
+          recipients: number
+          sent_at: string | null
+          sent_count: number
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          ends_on?: string | null
+          failed_count?: number
+          html?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string
+          message: string
+          product_ids?: string[]
+          recipients?: number
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          ends_on?: string | null
+          failed_count?: number
+          html?: string | null
+          id?: string
+          image_path?: string | null
+          kind?: string
+          message?: string
+          product_ids?: string[]
+          recipients?: number
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           enabled: boolean
@@ -32,6 +127,54 @@ export type Database = {
           id?: string
           label?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      email_secrets: {
+        Row: {
+          api_key: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_settings: {
+        Row: {
+          id: number
+          provider: string
+          sender_email: string | null
+          sender_name: string
+          shop_address: string
+          site_url: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          provider?: string
+          sender_email?: string | null
+          sender_name?: string
+          shop_address?: string
+          site_url?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          provider?: string
+          sender_email?: string | null
+          sender_name?: string
+          shop_address?: string
+          site_url?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -196,6 +339,104 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          confirm_sent_at: string | null
+          confirmed_at: string | null
+          consent_at: string
+          consent_email: boolean
+          consent_text: string | null
+          consent_whatsapp: boolean
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          source: string
+          status: string
+          token: string
+          unsubscribed_at: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          confirm_sent_at?: string | null
+          confirmed_at?: string | null
+          consent_at?: string
+          consent_email?: boolean
+          consent_text?: string | null
+          consent_whatsapp?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          source?: string
+          status?: string
+          token?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          confirm_sent_at?: string | null
+          confirmed_at?: string | null
+          consent_at?: string
+          consent_email?: boolean
+          consent_text?: string | null
+          consent_whatsapp?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          source?: string
+          status?: string
+          token?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          name: string
+          product_id: string | null
+          rating: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          name: string
+          product_id?: string | null
+          rating: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          name?: string
+          product_id?: string | null
+          rating?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -219,6 +460,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clean_text: { Args: { keep_lines?: boolean; t: string }; Returns: string }
+      confirm_subscription: { Args: { p_token: string }; Returns: Json }
+      email_http_send: { Args: { p_body: Json }; Returns: number }
+      email_request_result: { Args: { p_request_id: number }; Returns: Json }
+      email_status: { Args: never; Returns: Json }
       get_shop_video: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -227,6 +473,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      html_escape: { Args: { t: string }; Returns: string }
       is_shop_media: {
         Args: { _bucket: string; _path: string }
         Returns: boolean
@@ -242,6 +489,38 @@ export type Database = {
         }
         Returns: Json
       }
+      refresh_campaign: { Args: { p_id: string }; Returns: Json }
+      resend_confirmations: { Args: never; Returns: number }
+      send_campaign: {
+        Args: { p_html: string; p_id: string; p_test?: boolean }
+        Returns: Json
+      }
+      send_subscription_confirmation: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      set_email_api_key: { Args: { p_key: string }; Returns: undefined }
+      submit_testimonial: {
+        Args: {
+          p_message: string
+          p_name: string
+          p_product_id?: string
+          p_rating: number
+        }
+        Returns: undefined
+      }
+      subscribe: {
+        Args: {
+          p_consent_email: boolean
+          p_consent_whatsapp: boolean
+          p_email: string
+          p_name: string
+          p_source?: string
+          p_whatsapp: string
+        }
+        Returns: Json
+      }
+      unsubscribe: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin"
